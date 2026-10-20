@@ -105,6 +105,21 @@ def main():
     items = fetch_items()
     seen = load_state()
 
+    if "--latest" in sys.argv:
+        count = int(sys.argv[sys.argv.index("--latest") + 1])
+        matches = [i for i in items if i["category"] in ALLOWED_CATEGORIES]
+        matches.sort(key=lambda i: i["published"] or "", reverse=True)
+        for item in reversed(matches[:count]):  # oldest of the N first
+            post(webhook, item)
+            print("Posted:", item["title"])
+            time.sleep(1)
+        # Mark everything currently in the feed as seen so the
+        # scheduled run doesn't post these (or older ones) again.
+        seen = seen or []
+        seen += [i["guid"] for i in items if i["guid"] not in seen]
+        save_state(seen)
+        return
+
     if seen is None and "--post-existing" not in sys.argv:
         save_state([i["guid"] for i in items])
         print(f"First run: recorded {len(items)} existing items, posted none.")
