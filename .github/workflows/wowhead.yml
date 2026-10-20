@@ -1,0 +1,31 @@
+name: Wowhead News to Discord
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # every 30 minutes
+  workflow_dispatch:          # lets you also run it by hand
+
+permissions:
+  contents: write             # needed to save which articles were already posted
+
+jobs:
+  post-news:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Post new Wowhead news
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python wowhead_discord_webhook.py
+
+      - name: Save what has been posted
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add wowhead_seen.json
+          git diff --cached --quiet || (git commit -m "Update seen articles" && git push)
